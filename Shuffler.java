@@ -1,5 +1,3 @@
-package com.jeecg.devicemanage.ordergen.dial;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
