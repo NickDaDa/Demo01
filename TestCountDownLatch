@@ -1,0 +1,62 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class TestCountDownLatch {
+	
+	// 构造传入一个计数器，计数量等于任务个数
+	CountDownLatch countDownLatch = null;
+	public TestCountDownLatch(CountDownLatch countDownLatch) {
+		super();
+		this.countDownLatch = countDownLatch;
+	}
+
+	private void runThread() {
+		List<Future<?>> workList = new ArrayList<Future<?>>();
+		int count = (int) countDownLatch.getCount();
+		ExecutorService executorService = Executors.newFixedThreadPool(count);
+		for (int i = 0; i < count; i++) {
+			try {
+				Thread.sleep(100); // 保证执行时间一致，去掉会导致有尾数差一丢丢
+				Runnable tmpWork = new Runnable() {
+					@Override
+					public void run() {
+						try {
+							countDownLatch.await();
+							if (!Thread.currentThread().isInterrupted()) {
+								// 逻辑代码
+								System.out.println("Thread:" + Thread.currentThread().getName() + "------------time: "
+										+ System.currentTimeMillis());
+								// 第一个贱人去停掉所有线程
+								for (Future<?> f : workList) {
+									f.cancel(true);
+								}
+							} else {
+								System.out.println("Thread:" + Thread.currentThread().getName() + " 被中断了 ");
+							}
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}};
+				Future<?> future = executorService.submit(tmpWork);
+				// 保存引用	
+				workList.add(future);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				countDownLatch.countDown();
+			}
+		}
+
+		executorService.shutdown();
+	}
+
+	public static void main(String[] args) {
+		CountDownLatch countDownLatch = new CountDownLatch(10);
+		TestCountDownLatch test = new TestCountDownLatch(countDownLatch);
+		test.runThread();
+	}
+}
